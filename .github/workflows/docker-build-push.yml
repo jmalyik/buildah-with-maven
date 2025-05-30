@@ -10,7 +10,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-
+      - name: Check current directory and files
+        run: |
+          pwd ls -la
       - name: Set versions from branch name
         run: |
           BRANCH_NAME="${GITHUB_REF##*/}"
