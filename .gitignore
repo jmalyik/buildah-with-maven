@@ -33,7 +33,7 @@ Thumbs.db
 
 # Docker image fájlok vagy build cache, ha van lokálisan generálva
 .dockerignore
-Dockerfile
+
 
 # Egyéb build eszközök, cache-ek
 *.war
