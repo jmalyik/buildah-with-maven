@@ -1,0 +1,40 @@
+# Maven target directory (build output)
+target/
+
+# Eclipse / IntelliJ / VSCode IDE fájlok
+*.class
+*.log
+*.tmp
+*.bak
+
+# Eclipse
+.project
+.classpath
+.settings/
+
+# IntelliJ IDEA
+.idea/
+*.iml
+out/
+
+# VSCode
+.vscode/
+
+# Maven wrapper
+.mvn/wrapper/maven-wrapper.jar
+
+# OS fájlok
+.DS_Store
+Thumbs.db
+
+# Lokális konfigurációk, titkok
+*.properties
+*.env
+
+# Docker image fájlok vagy build cache, ha van lokálisan generálva
+.dockerignore
+Dockerfile
+
+# Egyéb build eszközök, cache-ek
+*.war
+*.jar
