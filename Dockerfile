@@ -1,11 +1,9 @@
 ARG JAVA_VERSION=11
+ARG MAVEN_VERSION=3.6.3
 
 FROM fedora:42
 
-RUN dnf install -y curl tar buildah && dnf clean all
-
-# Try installing java runtime only, no -devel
-RUN dnf install -y java-${JAVA_VERSION}-openjdk || true
+RUN dnf install -y curl tar buildah java-${JAVA_VERSION}-openjdk && dnf clean all
 
 ENV JAVA_HOME=/usr/lib/jvm/java-${JAVA_VERSION}-openjdk
 ENV PATH=$JAVA_HOME/bin:$PATH
