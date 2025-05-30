@@ -1,4 +1,4 @@
-FROM fedora:42
+FROM almalinux:9
 
 ARG JAVA_VERSION=11
 ARG MAVEN_VERSION=3.6.3
