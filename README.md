@@ -9,57 +9,93 @@ With this image, you can omit that complexity and do everything in a single step
 
 Because, based on my own experience:
 
- * You either need to push images to a local registry within your CI/CD environment, which can be cumbersome, or
-
- * You have to pre-populate the local registry credentials on the runner or environment, which may not be feasible in many setups.
+- You either need to push images to a local registry within your CI/CD environment, which can be cumbersome, or
+- You have to pre-populate the local registry credentials on the runner or environment, which may not be feasible in many setups.
 
 This image is shared to make the process easier and more streamlined.
 
-# User Guide: Branch Naming Convention for Image Builds
+---
 
-To support flexible builds for different Maven, JDK, or Buildah versions, the image build workflow uses branch names to determine which versions to use during the Docker image build.
+## User Guide: Branch Naming Convention for Image Builds
 
-## How to name your branches for working builds
+To support flexible builds for different Maven and JDK versions, the image build workflow uses branch names to determine which versions to use during the Docker image build.
 
-The branch name should include identifiers for the versions you want embedded in the image. The workflow parses the branch name to select the correct versions.
+### How to name your branches
 
-Example branch name pattern:
+Use the following pattern for branch names:
 
 ```
 jdk<JavaVersion>-maven<MavenVersion>
 ```
 
-## Supported examples
 
-|Branch name	|Java Version	|Maven Version|
-|---------------|-----------|-----|
-|jdk11-maven363	|11.0.2+9	|3.6.3|
-|jdk11-maven362	|11.0.2+9	|3.6.2|
+For example:
 
- * If you push code to jdk11-maven363, the GitHub Action will build an image with OpenJDK 11.0.2+9 and Maven 3.6.3.
+- `jdk11-maven363`
+- `jdk21-maven391`
 
- * If you push to jdk11-maven362, it will build with OpenJDK 11.0.2+9 and Maven 3.6.2.
+These values will be interpreted automatically by the workflow, with hardcoded mapping to specific versions:
+- `jdk11` → `11.0.2+9`
+- `jdk21` → `21.0.2+13`
 
-## Default behavior
+You can easily expand this logic in the GitHub Actions workflow if needed.
 
-If your branch name doesn’t match any known pattern, the workflow defaults to:
+---
 
- * Java Version: 11.0.2+9
+## Supported Examples
 
- * Maven Version: 3.6.3
+| Branch Name       | Java Version  | Maven Version |
+|-------------------|---------------|----------------|
+| jdk11-maven363    | 11.0.2+9      | 3.6.3          |
+| jdk11-maven362    | 11.0.2+9      | 3.6.2          |
+| jdk21-maven391    | 21.0.2+13     | 3.9.1          |
 
-## Note on the main branch
+> The resulting Docker image will be pushed to Docker Hub with a tag like:
+>
+> `docker.io/<your-dockerhub-username>/maven-buildah:jdk11-maven363`
 
-The main branch does not trigger image builds by default. This avoids building images unintentionally from your stable production branch.
+---
+
+##️ Default Behavior
+
+If the branch name doesn’t match the expected format, the workflow will fall back to:
+
+- Java Version: `11.0.2+9`
+- Maven Version: `3.6.3`
+
+---
+
+## Note on `main` Branch
+
+The `main` branch is intentionally excluded from triggering image builds to avoid accidental deployments or publishing from production code.
+
+---
 
 ## How to Use
 
- 1 Create or checkout a branch following the naming convention above (e.g., jdk11-maven363).
+1. **Create a branch** that follows the naming convention (e.g., `jdk11-maven363`).
+2. **Push** your changes to GitHub.
+3. The GitHub Action will **automatically build and push** the Docker image with the appropriate versions.
+4. **Use the image** in your GitLab CI/CD or any Docker-compatible environment.
+5. To support **additional versions**, simply:
+   - Push a new branch using the proper naming pattern.
+   - Ensure the workflow maps the Java major version to a full version + encoded format (e.g. `21.0.2%2B13`).
 
- 2 Push your code.
+---
 
- 3 The GitHub Action workflow will automatically build and push the Docker image tagged with the branch name and versions.
+## 📁 Repository Structure
 
- 4 Pull and use the image in your GitLab CI or elsewhere without worrying about Maven build setup inside your pipeline.
+| File / Folder       | Purpose                                    |
+|---------------------|--------------------------------------------|
+| `Dockerfile`        | Defines the base image with JDK + Maven + Buildah |
+| `.github/workflows/docker-build-push.yaml` | Automates image builds and pushes based on branch naming |
+| `.dockerignore`     | Excludes files from the Docker build context |
+| `README.md`         | This documentation                         |
 
- 5 If you want to add support for more versions, just update the GitHub Actions workflow to parse those branch names accordingly.
+---
+
+## Example Pull
+
+```bash
+docker pull your-dockerhub-username/maven-buildah:jdk11-maven363
+```

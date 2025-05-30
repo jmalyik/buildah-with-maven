@@ -3,73 +3,50 @@ name: Build and Push Maven+Buildah Image
 on:
   push:
     branches:
-      - '**'
+      - 'jdk*-maven*'
 
 jobs:
-  build:
+  build-and-push:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - name: Check current directory and files
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Extract versions from branch name
         run: |
-          pwd 
-          ls -la
-      - name: Set versions from branch name
-        run: |
-          BRANCH_NAME="${GITHUB_REF##*/}"
-          echo "BRANCH=$BRANCH_NAME" >> $GITHUB_ENV
+          BRANCH="${GITHUB_REF##*/}"
+          echo "BRANCH=$BRANCH" >> $GITHUB_ENV
 
-          IFS='-' read -ra PARTS <<< "$BRANCH_NAME"
+          # Extract Maven and Java versions from branch pattern
+          JAVA_VERSION=$(echo "$BRANCH" | grep -oP 'jdk\K[0-9]+' || echo "11")
+          MAVEN_VERSION=$(echo "$BRANCH" | grep -oP 'maven\K[0-9.]+$' || echo "3.6.3")
 
-          JAVA_VERSION=""
-          MAVEN_VERSION=""
-
-          for part in "${PARTS[@]}"; do
-            case "$part" in
-              jdk11)
-                JAVA_VERSION="11.0.2"
-                ;;
-              jdk17)
-                JAVA_VERSION="17.0.7"
-                ;;
-              jdk21)
-                JAVA_VERSION="21"
-                ;;
-              maven363)
-                MAVEN_VERSION="3.6.3"
-                ;;
-              maven362)
-                MAVEN_VERSION="3.6.2"
-                ;;
-              maven390)
-                MAVEN_VERSION="3.9.0"
-                ;;
-            esac
-          done
-
-          if [ -z "$JAVA_VERSION" ]; then
-            JAVA_VERSION="11.0.2"
+          # Build full Java version if known (e.g., 11.0.2+9 for java 11)
+          if [ "$JAVA_VERSION" = "11" ]; then
+            echo "JAVA_VERSION=11.0.2+9" >> $GITHUB_ENV
+            echo "JAVA_VERSION_ENCODED=11.0.2%2B9" >> $GITHUB_ENV
+          elif [ "$JAVA_VERSION" = "21" ]; then
+            echo "JAVA_VERSION=21.0.2+13" >> $GITHUB_ENV
+            echo "JAVA_VERSION_ENCODED=21.0.2%2B13" >> $GITHUB_ENV
+          else
+            echo "Unsupported JAVA_VERSION: $JAVA_VERSION"
+            exit 1
           fi
 
-          if [ -z "$MAVEN_VERSION" ]; then
-            MAVEN_VERSION="3.6.3"
-          fi
-
-          echo "JAVA_VERSION=$JAVA_VERSION" >> $GITHUB_ENV
           echo "MAVEN_VERSION=$MAVEN_VERSION" >> $GITHUB_ENV
 
-      - name: Build and push Docker image
-        env:
-          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
-          JAVA_VERSION: ${{ env.JAVA_VERSION }}
-          MAVEN_VERSION: ${{ env.MAVEN_VERSION }}
+      - name: Log version info
         run: |
           echo "Building with JAVA_VERSION=$JAVA_VERSION and MAVEN_VERSION=$MAVEN_VERSION"
 
-          docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_TOKEN
+      - name: Log in to DockerHub
+        run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
-          IMAGE_TAG="jdk${JAVA_VERSION%-*}-maven${MAVEN_VERSION//./}"
-          docker build --build-arg JAVA_VERSION=$JAVA_VERSION --build-arg MAVEN_VERSION=$MAVEN_VERSION -t $DOCKERHUB_USERNAME/maven-buildah:$IMAGE_TAG  -f Dockerfile .
-
-          docker push $DOCKERHUB_USERNAME/maven-buildah:$IMAGE_TAG
+      - name: Build and push image
+        run: |
+          docker build \
+            --build-arg JAVA_VERSION=$JAVA_VERSION \
+            --build-arg JAVA_VERSION_ENCODED=$JAVA_VERSION_ENCODED \
+            --build-arg MAVEN_VERSION=$MAVEN_VERSION \
+            -t docker.io/${{ secrets.DOCKERHUB_USERNAME }}/maven-buildah:jdk${JAVA_VERSION%%.*}-maven${MAVEN_VERSION} . \
+            && docker push docker.io/${{ secrets.DOCKERHUB_USERNAME }}/maven-buildah:jdk${JAVA_VERSION%%.*}-maven${MAVEN_VERSION}
