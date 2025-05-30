@@ -1,19 +1,14 @@
-FROM docker.io/fedora:42
+ARG JAVA_VERSION=11
 
-# Install buildah, curl, tar, és engedélyezzük a java-11 modult, majd telepítjük a java-11-openjdk-devel csomagot
-RUN dnf install -y dnf-plugins-core && \
-    dnf module enable -y java-11 && \
-    dnf install -y buildah curl tar java-11-openjdk-devel && \
-    dnf clean all
+FROM fedora:42
 
-# Környezeti változók
-ENV JAVA_HOME=/usr/lib/jvm/java-11-openjdk
+RUN dnf install -y curl tar buildah && dnf clean all
+
+# Try installing java runtime only, no -devel
+RUN dnf install -y java-${JAVA_VERSION}-openjdk || true
+
+ENV JAVA_HOME=/usr/lib/jvm/java-${JAVA_VERSION}-openjdk
 ENV PATH=$JAVA_HOME/bin:$PATH
-
-# Maven telepítés (például verziószám változóval, ha kell)
-ENV MAVEN_VERSION=3.6.3
-ENV MAVEN_HOME=/opt/maven
-ENV PATH=$MAVEN_HOME/bin:$PATH
 
 RUN curl -fsSL https://archive.apache.org/dist/maven/maven-3/$MAVEN_VERSION/binaries/apache-maven-$MAVEN_VERSION-bin.tar.gz \
     | tar -xz -C /opt && \
