@@ -22,14 +22,8 @@ RUN JAVA_PATH=$(dirname $(dirname $(readlink -f $(which java)))) && \
     echo "export JAVA_HOME=$JAVA_PATH" > /etc/profile.d/java.sh && \
     echo "export PATH=\$JAVA_HOME/bin:\$PATH" >> /etc/profile.d/java.sh && \
     echo "JAVA_HOME=$JAVA_PATH" >> /etc/environment && \
-    echo "$JAVA_PATH" > /tmp/java_home_path
-
-# (Optional) Debug print of detected JAVA_HOME
-RUN JAVA_PATH=$(cat /tmp/java_home_path) && \
     echo "JAVA_HOME detected as $JAVA_PATH"
 
-# Hardcoded fallback environment variables for build/runtime
-ENV JAVA_HOME=/usr/lib/jvm/java-11
 ENV PATH=$JAVA_HOME/bin:$PATH
 
 # Install Maven
