@@ -6,6 +6,12 @@ ENV JAVA_HOME=/usr/lib/jvm/java-${JAVA_VERSION}-openjdk
 ENV MAVEN_HOME=/opt/maven
 ENV PATH=$JAVA_HOME/bin:$MAVEN_HOME/bin:$PATH
 
+LABEL org.opencontainers.image.title="Maven + Buildah"
+LABEL org.opencontainers.image.description="A container image that bundles Buildah, Maven, and OpenJDK ${JAVA_VERSION}."
+LABEL org.opencontainers.image.version="${MAVEN_VERSION}"
+LABEL org.opencontainers.image.source="https://github.com/jmalyik/buildah-with-maven"
+LABEL org.opencontainers.image.licenses="MIT"
+
 # Install required packages
 RUN dnf install -y --allowerasing \
         curl \

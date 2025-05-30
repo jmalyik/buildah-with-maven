@@ -59,3 +59,7 @@ These are used by the workflow to authenticate and push the image.
 ---
 
 If you want to support additional Java or Maven versions, simply add the corresponding tags in your branch names and update the workflow if needed.
+
+# MIT License
+
+https://opensource.org/licenses/MIT
