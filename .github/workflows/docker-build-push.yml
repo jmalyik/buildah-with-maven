@@ -2,51 +2,40 @@ name: Build and Push Maven+Buildah Image
 
 on:
   push:
-    branches:
-      - 'jdk*-maven*'
+    branches-ignore:
+      - main
 
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repo
+      - name: Check out repository
         uses: actions/checkout@v3
 
-      - name: Extract versions from branch name
+      - name: Parse versions from branch name
         run: |
-          BRANCH="${GITHUB_REF##*/}"
-          echo "BRANCH=$BRANCH" >> $GITHUB_ENV
+          echo "BRANCH=${GITHUB_REF##*/}" >> $GITHUB_ENV
 
-          # Extract Maven and Java versions from branch pattern
-          JAVA_VERSION=$(echo "$BRANCH" | grep -oP 'jdk\K[0-9]+' || echo "11")
-          MAVEN_VERSION=$(echo "$BRANCH" | grep -oP 'maven\K[0-9.]+$' || echo "3.6.3")
-
-          # Build full Java version if known (e.g., 11.0.2+9 for java 11)
-          if [ "$JAVA_VERSION" = "11" ]; then
-            echo "JAVA_VERSION=11.0.2+9" >> $GITHUB_ENV
-            echo "JAVA_VERSION_ENCODED=11.0.2%2B9" >> $GITHUB_ENV
-          elif [ "$JAVA_VERSION" = "21" ]; then
-            echo "JAVA_VERSION=21.0.2+13" >> $GITHUB_ENV
-            echo "JAVA_VERSION_ENCODED=21.0.2%2B13" >> $GITHUB_ENV
+          if [[ "${GITHUB_REF##*/}" =~ ^jdk([0-9]+)-maven([0-9.]+)$ ]]; then
+            JAVA_VERSION="${BASH_REMATCH[1]}"
+            MAVEN_VERSION="${BASH_REMATCH[2]}"
           else
-            echo "Unsupported JAVA_VERSION: $JAVA_VERSION"
+            echo "Branch name must match the pattern jdk<version>-maven<version>, e.g., jdk11-maven363"
             exit 1
           fi
 
+          echo "JAVA_VERSION=$JAVA_VERSION" >> $GITHUB_ENV
           echo "MAVEN_VERSION=$MAVEN_VERSION" >> $GITHUB_ENV
-
-      - name: Log version info
-        run: |
-          echo "Building with JAVA_VERSION=$JAVA_VERSION and MAVEN_VERSION=$MAVEN_VERSION"
 
       - name: Log in to DockerHub
         run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
-      - name: Build and push image
+      - name: Build and Push Docker image
         run: |
+          IMAGE_NAME="docker.io/${{ secrets.DOCKERHUB_USERNAME }}/maven-buildah:jdk${JAVA_VERSION}-maven${MAVEN_VERSION}"
+          echo "Building image: $IMAGE_NAME"
           docker build \
-            --build-arg JAVA_VERSION=$JAVA_VERSION \
-            --build-arg JAVA_VERSION_ENCODED=$JAVA_VERSION_ENCODED \
-            --build-arg MAVEN_VERSION=$MAVEN_VERSION \
-            -t docker.io/${{ secrets.DOCKERHUB_USERNAME }}/maven-buildah:jdk${JAVA_VERSION%%.*}-maven${MAVEN_VERSION} . \
-            && docker push docker.io/${{ secrets.DOCKERHUB_USERNAME }}/maven-buildah:jdk${JAVA_VERSION%%.*}-maven${MAVEN_VERSION}
+            --build-arg JAVA_VERSION=${JAVA_VERSION} \
+            --build-arg MAVEN_VERSION=${MAVEN_VERSION} \
+            -t "$IMAGE_NAME" .
+          docker push "$IMAGE_NAME"
