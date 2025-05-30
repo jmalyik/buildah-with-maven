@@ -33,4 +33,3 @@ ENV PATH=${MAVEN_HOME}/bin:$PATH
 
 WORKDIR /app
 
-ENTRYPOINT ["/bin/bash"]
