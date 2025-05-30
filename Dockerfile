@@ -1,4 +1,4 @@
-FROM centos:stream9
+FROM quay.io/centos/centos:stream9
 
 ARG JAVA_VERSION=11
 ARG MAVEN_VERSION=3.6.3
@@ -13,7 +13,6 @@ RUN dnf install -y --allowerasing \
         buildah \
         java-${JAVA_VERSION}-openjdk \
     && dnf clean all
-
 
 ENV JAVA_HOME=/usr/lib/jvm/java-${JAVA_VERSION}-openjdk
 ENV PATH=${JAVA_HOME}/bin:$PATH
