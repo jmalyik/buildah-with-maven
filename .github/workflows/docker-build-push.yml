@@ -67,6 +67,6 @@ jobs:
           docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_TOKEN
 
           IMAGE_TAG="jdk${JAVA_VERSION%-*}-maven${MAVEN_VERSION//./}"
-          docker build --build-arg JAVA_VERSION=$JAVA_VERSION --build-arg MAVEN_VERSION=$MAVEN_VERSION -t $DOCKERHUB_USERNAME/maven-buildah:$IMAGE_TAG .
+          docker build --build-arg JAVA_VERSION=$JAVA_VERSION --build-arg MAVEN_VERSION=$MAVEN_VERSION -t $DOCKERHUB_USERNAME/maven-buildah:$IMAGE_TAG  -f Dockerfile .
 
           docker push $DOCKERHUB_USERNAME/maven-buildah:$IMAGE_TAG
