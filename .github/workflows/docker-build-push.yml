@@ -2,59 +2,71 @@ name: Build and Push Maven+Buildah Image
 
 on:
   push:
-    branches-ignore:
-      - main
-
-env:
-  CONTAINER_REGISTRY: docker.io
-  IMAGE_REPO: your-dockerhub-username/maven-buildah
+    branches:
+      - '**'
 
 jobs:
-  build-and-push:
+  build:
     runs-on: ubuntu-latest
-
-    env:
-      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
-      - name: Set versions based on branch
-        id: set_versions
+      - name: Set versions from branch name
         run: |
-          echo "BRANCH=${GITHUB_REF##*/}" >> $GITHUB_ENV
-          case "${GITHUB_REF##*/}" in
-            "jdk11-maven363")
-              echo "JAVA_VERSION=11.0.2+9" >> $GITHUB_ENV
-              echo "MAVEN_VERSION=3.6.3" >> $GITHUB_ENV
-              ;;
-            "jdk11-maven362")
-              echo "JAVA_VERSION=11.0.2+9" >> $GITHUB_ENV
-              echo "MAVEN_VERSION=3.6.2" >> $GITHUB_ENV
-              ;;
-            *)
-              # Default verziók
-              echo "JAVA_VERSION=11.0.2+9" >> $GITHUB_ENV
-              echo "MAVEN_VERSION=3.6.3" >> $GITHUB_ENV
-              ;;
-          esac
+          BRANCH_NAME="${GITHUB_REF##*/}"
+          echo "BRANCH=$BRANCH_NAME" >> $GITHUB_ENV
 
-      - name: Login to DockerHub
-        uses: docker/login-action@v2
-        with:
-          username: ${{ env.DOCKERHUB_USERNAME }}
-          password: ${{ env.DOCKERHUB_TOKEN }}
+          IFS='-' read -ra PARTS <<< "$BRANCH_NAME"
+
+          JAVA_VERSION=""
+          MAVEN_VERSION=""
+
+          for part in "${PARTS[@]}"; do
+            case "$part" in
+              jdk11)
+                JAVA_VERSION="11.0.2"
+                ;;
+              jdk17)
+                JAVA_VERSION="17.0.7"
+                ;;
+              jdk21)
+                JAVA_VERSION="21"
+                ;;
+              maven363)
+                MAVEN_VERSION="3.6.3"
+                ;;
+              maven362)
+                MAVEN_VERSION="3.6.2"
+                ;;
+              maven390)
+                MAVEN_VERSION="3.9.0"
+                ;;
+            esac
+          done
+
+          if [ -z "$JAVA_VERSION" ]; then
+            JAVA_VERSION="11.0.2"
+          fi
+
+          if [ -z "$MAVEN_VERSION" ]; then
+            MAVEN_VERSION="3.6.3"
+          fi
+
+          echo "JAVA_VERSION=$JAVA_VERSION" >> $GITHUB_ENV
+          echo "MAVEN_VERSION=$MAVEN_VERSION" >> $GITHUB_ENV
 
       - name: Build and push Docker image
-        uses: docker/build-push-action@v4
-        with:
-          context: .
-          push: true
-          tags: |
-            ${{ env.CONTAINER_REGISTRY }}/${{ env.IMAGE_REPO }}:${{ env.BRANCH }}-${{ env.JAVA_VERSION }}-maven${{ env.MAVEN_VERSION }}
-            ${{ env.CONTAINER_REGISTRY }}/${{ env.IMAGE_REPO }}:latest
-          build-args: |
-            JAVA_VERSION=${{ env.JAVA_VERSION }}
-            MAVEN_VERSION=${{ env.MAVEN_VERSION }}
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+          JAVA_VERSION: ${{ env.JAVA_VERSION }}
+          MAVEN_VERSION: ${{ env.MAVEN_VERSION }}
+        run: |
+          echo "Building with JAVA_VERSION=$JAVA_VERSION and MAVEN_VERSION=$MAVEN_VERSION"
+
+          docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_TOKEN
+
+          IMAGE_TAG="jdk${JAVA_VERSION%-*}-maven${MAVEN_VERSION//./}"
+          docker build --build-arg JAVA_VERSION=$JAVA_VERSION --build-arg MAVEN_VERSION=$MAVEN_VERSION -t $DOCKERHUB_USERNAME/maven-buildah:$IMAGE_TAG .
+
+          docker push $DOCKERHUB_USERNAME/maven-buildah:$IMAGE_TAG
