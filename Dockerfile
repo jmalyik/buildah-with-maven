@@ -17,14 +17,20 @@ RUN dnf install -y --allowerasing \
         java-${JAVA_VERSION}-openjdk \
     && dnf clean all
 
-# Resolve JAVA_HOME dynamically
-RUN export JAVA_HOME=$(dirname $(dirname $(readlink -f $(which javac)))) && \
-    echo "export JAVA_HOME=${JAVA_HOME}" >> /etc/profile.d/java.sh && \
+# Detect JAVA_HOME dynamically and set environment variables for interactive shells
+RUN JAVA_PATH=$(dirname $(dirname $(readlink -f $(which java)))) && \
+    echo "export JAVA_HOME=$JAVA_PATH" > /etc/profile.d/java.sh && \
     echo "export PATH=\$JAVA_HOME/bin:\$PATH" >> /etc/profile.d/java.sh && \
-    ln -s ${JAVA_HOME} /usr/lib/jvm/default-java
+    echo "JAVA_HOME=$JAVA_PATH" >> /etc/environment && \
+    echo "$JAVA_PATH" > /tmp/java_home_path
 
-ENV JAVA_HOME=/usr/lib/jvm/default-java
-ENV PATH=$JAVA_HOME/bin:/opt/maven/bin:$PATH
+# (Optional) Debug print of detected JAVA_HOME
+RUN JAVA_PATH=$(cat /tmp/java_home_path) && \
+    echo "JAVA_HOME detected as $JAVA_PATH"
+
+# Hardcoded fallback environment variables for build/runtime
+ENV JAVA_HOME=/usr/lib/jvm/java-11
+ENV PATH=$JAVA_HOME/bin:$PATH
 
 # Install Maven
 RUN curl -fsSL https://archive.apache.org/dist/maven/maven-3/${MAVEN_VERSION}/binaries/apache-maven-${MAVEN_VERSION}-bin.tar.gz \
