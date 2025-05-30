@@ -13,7 +13,7 @@ ENV JAVA_HOME=/opt/java/openjdk-$JAVA_VERSION
 ENV PATH=$JAVA_HOME/bin:$PATH
 
 RUN mkdir -p /opt/java && \
-    curl -fsSL https://github.com/AdoptOpenJDK/openjdk11-binaries/releases/download/jdk-${JAVA_VERSION_ENCODED}/OpenJDK11U-jdk_x64_linux_hotspot_${JAVA_VERSION_ENCODED}.tar.gz \
+    curl -fsSL https://github.com/adoptium/temurin11-binaries/releases/download/jdk-${JAVA_VERSION//+/%2B}/OpenJDK11U-jdk_x64_linux_hotspot_${JAVA_VERSION//+/_}.tar.gz \
     | tar -xz -C /opt/java && \
     mv /opt/java/jdk-${JAVA_VERSION} $JAVA_HOME
 
