@@ -1,4 +1,4 @@
-FROM almalinux:9
+FROM quay.io/centos/centos:stream9
 
 ARG JAVA_VERSION=11
 ARG MAVEN_VERSION=3.6.3
